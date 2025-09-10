@@ -4,9 +4,25 @@ import React, { useEffect, useState } from 'react';
 import QuestionRenderer from '@/components/QuestionRenderer';
 import { useRouter } from 'next/navigation';
 
+// app/survey/page.tsx
+
 type Option = { id: string; label: string; value: string };
-type Question = { id: string; code: string; section: string; prompt: string; qtype: string; options?: Option[] };
-type SurveyPayload = { survey: { id: string, title: string, description?: string }, questions: Question[] };
+
+// Change this Question type so qtype is a union, not string:
+type Question = {
+  id: string;
+  code: string;
+  section: string;
+  prompt: string;
+  qtype: 'text' | 'number' | 'single' | 'multi' | 'longtext';
+  options?: Option[];
+};
+
+type SurveyPayload = {
+  survey: { id: string; title: string; description?: string };
+  questions: Question[];
+};
+
 
 export default function SurveyPage() {
   const router = useRouter();
