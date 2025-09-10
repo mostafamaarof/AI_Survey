@@ -28,7 +28,7 @@ export async function GET() {
       if (error) throw error;
       survey = data?.[0] ?? null;
     }
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'Failed to load survey' }, { status: 500 });
   }
 
@@ -39,17 +39,20 @@ export async function GET() {
   let q7Breakdown: any[] = [];
 
   try {
-    const { data, error } = await supabase.rpc('count_responses', { s_id: survey.id }).single();
+    const { data, error } = await supabase
+      .rpc('count_responses', { s_id: survey.id })
+      .single();
     if (error) throw error;
-    responsesCount = Number(data?.count ?? 0);
+    responsesCount = Number((data as any)?.count ?? 0);
   } catch {
     responsesCount = 0;
   }
 
   try {
-    const { data, error } = await supabase.rpc('breakdown_single_choice', { question_code: 'Q7' });
+    const { data, error } = await supabase
+      .rpc('breakdown_single_choice', { question_code: 'Q7' });
     if (error) throw error;
-    q7Breakdown = Array.isArray(data) ? data : [];
+    q7Breakdown = Array.isArray(data) ? (data as any[]) : [];
   } catch {
     q7Breakdown = [];
   }
