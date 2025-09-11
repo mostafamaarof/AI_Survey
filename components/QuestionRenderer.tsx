@@ -1,96 +1,150 @@
-
+// components/QuestionRenderer.tsx
 'use client';
+
 import React from 'react';
 
-type Option = { id: string; label: string; value: string; };
+type Option = { id: string; label: string; value: string };
 type Question = {
   id: string;
   code: string;
   section: string;
   prompt: string;
-  qtype: 'text'|'number'|'single'|'multi'|'longtext';
+  qtype: 'text' | 'number' | 'single' | 'multi' | 'longtext';
   options?: Option[];
 };
 
-type Props = {
-  questions: Question[];
-  onChange: (qId: string, value: any) => void;
-  values: Record<string, any>;
-};
+type Values = Record<string, any>;
+type Errors = Record<string, string | null>;
 
-export default function QuestionRenderer({ questions, onChange, values }: Props) {
-  const sections = Array.from(new Set(questions.map(q => q.section)));
+export default function QuestionRenderer({
+  questions,
+  values,
+  errors,
+  onChange,
+}: {
+  questions: Question[];
+  values: Values;
+  errors: Errors;
+  onChange: (code: string, v: any) => void;
+}) {
+  // group by section for nicer layout
+  const sections = Array.from(
+    questions.reduce((m, q) => {
+      if (!m.has(q.section)) m.set(q.section, []);
+      m.get(q.section)!.push(q);
+      return m;
+    }, new Map<string, Question[]>())
+  );
+
   return (
     <div className="space-y-8">
-      {sections.map(sec => {
-        const qs = questions.filter(q => q.section === sec);
-        return (
-          <div key={sec}>
-            <h2 className="text-xl font-semibold mb-4">{sec}</h2>
-            <div className="space-y-6">
-              {qs.map(q => (
-                <div key={q.id}>
-                  <label className="block font-medium mb-2">{q.code}. {q.prompt}</label>
-                  {q.qtype === 'text' && (
-                    <input className="border rounded p-2 w-full" value={values[q.id] ?? ''}
-                      onChange={e => onChange(q.id, e.target.value)} />
-                  )}
-                  {q.qtype === 'number' && (
-                    <input type="number" min="0" className="border rounded p-2 w-full" value={values[q.id] ?? ''}
-                      onChange={e => onChange(q.id, e.target.value)} />
-                  )}
-                  {q.qtype === 'longtext' && (
-                    <textarea className="border rounded p-2 w-full" rows={4} value={values[q.id] ?? ''}
-                      onChange={e => onChange(q.id, e.target.value)} />
-                  )}
-                  {q.qtype === 'single' && (
-                    <div className="space-y-2">
-                      {q.options?.map(o => (
-                        <label key={o.id} className="flex items-center gap-2">
-                          <input type="radio" name={q.id} checked={values[q.id] === o.id}
-                            onChange={() => onChange(q.id, o.id)} />
-                          <span>{o.label}</span>
+      {sections.map(([section, qs]) => (
+        <section key={section} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">{section}</h2>
+          <div className="space-y-6">
+            {qs.map((q) => (
+              <div key={q.id}>
+                <label className="block text-sm font-medium text-gray-800 mb-2">
+                  <span className="align-middle">{q.code}. {q.prompt}</span>
+                  <span className="text-rose-600 ml-1">*</span>
+                </label>
+
+                {q.qtype === 'text' && (
+                  <input
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                    value={values[q.code] ?? ''}
+                    onChange={(e) => onChange(q.code, e.target.value)}
+                  />
+                )}
+
+                {q.qtype === 'longtext' && (
+                  <textarea
+                    rows={4}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                    value={values[q.code] ?? ''}
+                    onChange={(e) => onChange(q.code, e.target.value)}
+                  />
+                )}
+
+                {q.qtype === 'number' && (
+                  <input
+                    type="number"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                    value={values[q.code] ?? ''}
+                    onChange={(e) => onChange(q.code, e.target.value === '' ? '' : Number(e.target.value))}
+                  />
+                )}
+
+                {q.qtype === 'single' && (
+                  <div className="grid gap-2">
+                    {q.options?.map((opt) => (
+                      <label key={opt.id} className="inline-flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name={q.code}
+                          className="size-4"
+                          checked={values[q.code] === opt.value}
+                          onChange={() => onChange(q.code, opt.value)}
+                        />
+                        <span>{opt.label}</span>
+                      </label>
+                    ))}
+                    {/* conditional other text when value === 'other' */}
+                    {q.options?.some(o => o.value === 'other') && values[q.code] === 'other' && (
+                      <input
+                        placeholder="Please specify"
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                        value={values[`${q.code}_other`] ?? ''}
+                        onChange={(e) => onChange(`${q.code}_other`, e.target.value)}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {q.qtype === 'multi' && (
+                  <div className="grid gap-2">
+                    {q.options?.map((opt) => {
+                      const arr: string[] = values[q.code] ?? [];
+                      const checked = arr.includes(opt.value);
+                      return (
+                        <label key={opt.id} className="inline-flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="size-4"
+                            checked={checked}
+                            onChange={(e) => {
+                              const next = new Set(arr);
+                              if (e.target.checked) next.add(opt.value);
+                              else next.delete(opt.value);
+                              onChange(q.code, Array.from(next));
+                            }}
+                          />
+                          <span>{opt.label}</span>
                         </label>
-                      ))}
-                      {/* Show "Other" textbox if an 'Other' option exists and is selected */}
-                      {q.options?.some(o => o.value === 'other') && values[q.id+'_other_sel'] && (
-                        <input className="border rounded p-2 w-full mt-2" placeholder="Please specify"
-                          value={values[q.id+'_other_text'] ?? ''}
-                          onChange={e => onChange(q.id+'_other_text', e.target.value)} />
+                      );
+                    })}
+                    {/* conditional other text when 'other' is selected */}
+                    {q.options?.some(o => o.value === 'other') &&
+                      Array.isArray(values[q.code]) &&
+                      values[q.code].includes('other') && (
+                        <input
+                          placeholder="Please specify"
+                          className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                          value={values[`${q.code}_other`] ?? ''}
+                          onChange={(e) => onChange(`${q.code}_other`, e.target.value)}
+                        />
                       )}
-                    </div>
-                  )}
-                  {q.qtype === 'multi' && (
-                    <div className="space-y-2">
-                      {q.options?.map(o => {
-                        const arr: string[] = values[q.id] ?? [];
-                        const checked = arr.includes(o.id);
-                        return (
-                          <label key={o.id} className="flex items-center gap-2">
-                            <input type="checkbox" checked={checked}
-                              onChange={e => {
-                                const copy = new Set(arr);
-                                if (e.target.checked) copy.add(o.id); else copy.delete(o.id);
-                                onChange(q.id, Array.from(copy));
-                                if (o.value === 'other') onChange(q.id+'_other_sel', e.target.checked);
-                              }} />
-                            <span>{o.label}</span>
-                          </label>
-                        );
-                      })}
-                      {q.options?.some(o => o.value === 'other') && values[q.id+'_other_sel'] && (
-                        <input className="border rounded p-2 w-full mt-2" placeholder="Please specify"
-                          value={values[q.id+'_other_text'] ?? ''}
-                          onChange={e => onChange(q.id+'_other_text', e.target.value)} />
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                  </div>
+                )}
+
+                {errors[q.code] && (
+                  <p className="mt-2 text-sm text-rose-600">{errors[q.code]}</p>
+                )}
+              </div>
+            ))}
           </div>
-        );
-      })}
+        </section>
+      ))}
     </div>
   );
 }
