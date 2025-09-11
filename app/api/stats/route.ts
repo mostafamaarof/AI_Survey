@@ -1,17 +1,14 @@
-//  app/api/stats/route.ts
+// app/api/stats/route.ts
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabaseAdmin';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export async function GET() {
   const supabase = getAdminClient();
 
-  // 1) Pick the active survey (or SURVEY_ID if provided)
+  // Pick the active survey (or SURVEY_ID if provided)
   const surveyId = process.env.SURVEY_ID || null;
   let survey: any = null;
 
@@ -40,7 +37,6 @@ export async function GET() {
 
   if (!survey) return NextResponse.json({ error: 'No survey' }, { status: 404 });
 
-  // 2) Totals + breakdowns with safe fallbacks
   let responsesCount = 0;
   let q7Breakdown: any[] = [];
 
