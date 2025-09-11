@@ -1,5 +1,9 @@
 // components/SurveyWizard.tsx
 'use client';
+// in SurveyWizard header
+<h1 className="text-2xl md:text-3xl font-semibold">
+  Survey (NEW DESIGN)
+</h1>
 
 import { useEffect, useMemo, useState } from 'react';
 
