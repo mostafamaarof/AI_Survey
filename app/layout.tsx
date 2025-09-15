@@ -1,4 +1,5 @@
 // app/layout.tsx
+import "./globals.css";
 export const metadata = {
   title: 'AI Audit Survey',
   description: 'Survey on the Use of AI and Digital Technologies in Audit Work',
